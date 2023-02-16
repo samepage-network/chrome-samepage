@@ -26,6 +26,6 @@ jobs:
       - name: install playwright
         run: npx playwright install
       - name: test
-        run: npx samepage test
+        run: node scripts/test.js
       - name: Upload Integration Test Coverage to Codecov
         uses: codecov/codecov-action@v3

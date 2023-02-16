@@ -4,7 +4,8 @@
 
 Official Chrome client into [SamePage](https://samepage.network) - the inter-tool protocol for thought.
 
-Use SamePage to connect your Chrome workspace to other notebooks to sync changes across them, perform cross notebook queries, and more! To get started, install this extension and request an invite code by emailing support@samepage.network. Check out our docs at [https://samepage.network/docs](https://samepage.network/docs)!
+The SamePage Chrome extension acts as a catch-all. It's intended just for users of applications who don't yet support a native extension API. The following applications are currently supported:
+- Notion
 
 ## Demo
 

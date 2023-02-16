@@ -1,0 +1,21 @@
+{
+  "manifest_version": 3,
+  "name": "SamePage",
+  "description": "",
+  "version": "1.0.0",
+  "action": {
+    "default_popup": "index.html",
+    "default_icon": "logo.png"
+  },
+  "permissions": ["storage"],
+  "background": {
+    "service_worker": "background.js"
+  },
+  "content_scripts": [
+    {
+      "matches": ["https://*.notion.so/*"],
+      "js": ["content.js"],
+      "css": ["index.css", "samepage.css"]
+    }
+  ]
+}
