@@ -1,3 +1,7 @@
 .notion-topbar > div {
   overflow: unset !important;
 }
+
+.samepage-onboarding-portal .bp4-overlay {
+  z-index: 1000;
+}

@@ -1,12 +1,12 @@
 import setupSamePageClient from "samepage/protocols/setupSamePageClient";
 import loadSharePageWithNotebook from "samepage/protocols/sharePageWithNotebook";
 import defaultSettings from "samepage/utils/defaultSettings";
-import { z } from "zod";
 import renderOverlay from "./utils/renderOverlay";
+import { SupportedNotebook, zSetup } from "./utils/types";
 
 const globalSettings: Record<string, string> = {};
 
-const setupUserSettings = async () => {
+const setupUserSettings = async (data: SupportedNotebook) => {
   const settings = defaultSettings.map((d) => ({
     id: d.id, // string
     name: d.name, // string
@@ -14,16 +14,17 @@ const setupUserSettings = async () => {
     value: d.default, // boolean or string
     type: d.type, // "boolean" or "string"
   }));
-  await Promise.all(
-    settings.map((s) =>
-      chrome.storage.sync
-        .get(s.id)
-        .then((all) => (globalSettings[s.id] = all[s.id] || s.value))
-    )
-  );
+  const key = `${data.app}:${data.workspace}`;
+  await chrome.storage.sync.get(key).then((d) => {
+    settings.forEach((s) => {
+      globalSettings[s.id] = d[key]?.[s.id] || s.value;
+    });
+  });
 };
 
-const setupClient = (notebook: { app: "Notion"; workspace: string }) => {
+const commands: Record<string, () => void> = {};
+
+const setupClient = (notebook: SupportedNotebook) => {
   // blueprintjs fails to load through samepage.css
   // but ideally we just remove blueprint entirely in the future
   if (!document.getElementById("blueprint-css")) {
@@ -35,25 +36,48 @@ const setupClient = (notebook: { app: "Notion"; workspace: string }) => {
     document.head.appendChild(link);
   }
 
+  const key = `${notebook.app}:${notebook.workspace}`;
   const { unload } = setupSamePageClient({
     ...notebook,
     getSetting: (s) => globalSettings[s],
     setSetting: (s, v) => {
       globalSettings[s] = v;
-      chrome.storage.sync.set({ [s]: v });
+      chrome.storage.sync.set({ [key]: globalSettings });
     },
-    notificationContainerPath: ".notion-topbar-action-buttons",
+    notificationContainerPath: ".notion-topbar-share-menu",
     renderOverlay,
-    // Interact with user
-    // addCommand: window.roamAlphaAPI.ui.commandPalette.addCommand,
-    // removeCommand: window.roamAlphaAPI.ui.commandPalette.removeCommand,
+    addCommand: ({ label, callback }) => {
+      commands[label] = callback;
+    },
+    removeCommand: ({ label }) => {
+      delete commands[label];
+    },
+  });
+  document.addEventListener("keydown", (e) => {
+    if (
+      e.metaKey &&
+      !e.shiftKey &&
+      !e.ctrlKey &&
+      !e.altKey &&
+      e.key.length === 1
+    ) {
+      const command = Object.entries(commands).reduce((p, c) => {
+        const prevIndex = p[0].toLowerCase().indexOf(e.key.toLowerCase());
+        const curIndex = p[0].toLowerCase().indexOf(e.key.toLowerCase());
+        return curIndex < prevIndex ? c : p;
+      });
+      if (command) {
+        command[1]();
+        console.log(`Fired ${command[0]}`);
+      }
+    }
   });
   return unload;
 };
 
 const setupSharePageWithNotebook = () => {
   const { unload } = loadSharePageWithNotebook({
-    // getCurrentNotebookPageId,
+    getCurrentNotebookPageId: async () => document.location.pathname,
     // createPage,
     // openPage,
     // deletePage,
@@ -80,11 +104,6 @@ const setupProtocols = () => {
   };
 };
 
-const zSetup = z
-  .object({ app: z.literal("Notion"), workspace: z.string() })
-  .or(z.literal(false))
-  .or(z.undefined());
-
 const setup = async () => {
   const response = await chrome.runtime.sendMessage({
     type: "SETUP",
@@ -92,7 +111,7 @@ const setup = async () => {
   });
   const data = zSetup.parse(response);
   if (data) {
-    setupUserSettings();
+    await setupUserSettings(data);
     const unloadClient = setupClient(data);
     const unloadProtocols = setupProtocols();
     return () => {

@@ -7,4 +7,5 @@ module.exports = {
   ],
   finish: "scripts/finish.js",
   entry: ["background.ts", "content.ts"],
+  env: ["NOTION_INTEGRATION_TOKEN"],
 };
