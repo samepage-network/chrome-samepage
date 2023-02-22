@@ -1,6 +1,6 @@
 {
   "name": "chrome-samepage",
-  "version": "1.0.0",
+  "version": "1.0.1",
   "description": "Official Chrome client into the intra tool-for-thought protocol.",
   "main": "./dist/index.js",
   "scripts": {
