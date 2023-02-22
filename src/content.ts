@@ -3,6 +3,7 @@ import loadSharePageWithNotebook from "samepage/protocols/sharePageWithNotebook"
 import defaultSettings from "samepage/utils/defaultSettings";
 import renderOverlay from "./utils/renderOverlay";
 import { SupportedNotebook, zSetup } from "./utils/types";
+import { v4 } from "uuid";
 
 const globalSettings: Record<string, string> = {};
 
@@ -16,6 +17,7 @@ const setupUserSettings = async (data: SupportedNotebook) => {
   }));
   const key = `${data.app}:${data.workspace}`;
   await chrome.storage.sync.get(key).then((d) => {
+    console.log("settings", settings, d);
     settings.forEach((s) => {
       globalSettings[s.id] = d[key]?.[s.id] || s.value;
     });
@@ -62,13 +64,18 @@ const setupClient = (notebook: SupportedNotebook) => {
       e.key.length === 1
     ) {
       const command = Object.entries(commands).reduce((p, c) => {
-        const prevIndex = p[0].toLowerCase().indexOf(e.key.toLowerCase());
-        const curIndex = p[0].toLowerCase().indexOf(e.key.toLowerCase());
+        const indexify = (s: string) => {
+          const i = s.toLowerCase().indexOf(e.key.toLowerCase());
+          return i < 0 ? s.length : i;
+        };
+        const prevIndex = indexify(p[0]);
+        const curIndex = indexify(c[0]);
         return curIndex < prevIndex ? c : p;
       });
       if (command) {
         command[1]();
-        console.log(`Fired ${command[0]}`);
+        console.log(`Fired ${command[0]} from`, commands);
+        e.preventDefault();
       }
     }
   });
@@ -76,15 +83,74 @@ const setupClient = (notebook: SupportedNotebook) => {
 };
 
 const setupSharePageWithNotebook = () => {
-  const { unload } = loadSharePageWithNotebook({
-    getCurrentNotebookPageId: async () => document.location.pathname,
-    // createPage,
-    // openPage,
-    // deletePage,
-    // applyState,
-    // calculateState,
-    // overlayProps,
+  const getCurrentNotebookPageId = () =>
+    document.location.pathname.replace(/^\//, "");
+  const { unload, refreshContent } = loadSharePageWithNotebook({
+    getCurrentNotebookPageId: async () => getCurrentNotebookPageId(),
+    createPage: (notebookPageId: string) =>
+      chrome.runtime.sendMessage({
+        type: "CREATE_PAGE",
+        data: { notebookPageId, path: document.location.pathname },
+      }),
+    calculateState: (notebookPageId: string) =>
+      chrome.runtime
+        .sendMessage({
+          type: "CALCULATE_STATE",
+          data: { notebookPageId },
+        })
+        .then((r) => {
+          if (r.success) {
+            return r.data;
+          } else {
+            return Promise.reject(r.error);
+          }
+        }),
+    overlayProps: {
+      viewSharedPageProps: {},
+      sharedPageStatusProps: {
+        getPaths: (notebookPageId) => {
+          const uuidRaw = /[a-f0-9]{32}$/.exec(notebookPageId)?.[0];
+          if (!uuidRaw) return [];
+          const pageUuid = `${uuidRaw.slice(0, 8)}-${uuidRaw.slice(
+            8,
+            12
+          )}-${uuidRaw.slice(12, 16)}-${uuidRaw.slice(16, 20)}-${uuidRaw.slice(
+            20,
+            32
+          )}`;
+          const firstBlock = document.querySelector(
+            `.notion-frame div[data-block-id="${pageUuid}"`
+          );
+          if (!firstBlock || !firstBlock.parentElement) return [];
+          const contentEditable = firstBlock.closest(`.whenContentEditable`);
+          if (!contentEditable || !contentEditable.parentElement) return [];
+          const container = document.createElement("div");
+          contentEditable.parentElement.insertBefore(
+            container,
+            contentEditable
+          );
+          const sel = v4();
+          container.setAttribute("data-samepage-shared", sel);
+          return [`div[data-samepage-shared="${sel}"]`];
+        },
+      },
+    },
+    openPage: async (notebookPageId) =>
+      window.location.assign(`/${notebookPageId}`),
+    deletePage: (notebookPageId) =>
+      chrome.runtime.sendMessage({
+        type: "DELETE_PAGE",
+        data: { notebookPageId },
+      }),
+    applyState: async (notebookPageId, state) =>
+      chrome.runtime.sendMessage({
+        type: "APPLY_STATE",
+        data: { notebookPageId, state },
+      }),
   });
+  commands["Refresh"] = () => {
+    refreshContent({ notebookPageId: getCurrentNotebookPageId() });
+  };
 
   return unload;
 };

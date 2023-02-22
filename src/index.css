@@ -5,3 +5,11 @@
 .samepage-onboarding-portal .bp4-overlay {
   z-index: 1000;
 }
+
+.samepage-shared-page-status {
+  margin-bottom: 0;
+}
+
+div[id*="samepage-shared"] {
+  padding: 0 96px;
+}

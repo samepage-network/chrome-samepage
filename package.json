@@ -27,7 +27,7 @@
   "homepage": "https://github.com/samepage-network/chrome-samepage#readme",
   "dependencies": {
     "@notionhq/client": "^2.2.3",
-    "samepage": "^0.41.2"
+    "samepage": "^0.42.4"
   },
   "devDependencies": {
     "@types/chrome": "^0.0.213",
