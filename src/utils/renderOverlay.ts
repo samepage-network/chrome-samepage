@@ -10,7 +10,6 @@ const renderOverlay: RenderOverlay = ({
   path = "body",
 } = {}) => {
   let onClose: () => void;
-  console.log(id, props, path);
   if (typeof document === "undefined") return undefined;
   const parent = document.createElement("div");
   parent.id = id.replace(/^\d*/, "");
@@ -21,7 +20,6 @@ const renderOverlay: RenderOverlay = ({
         : typeof path === "string"
         ? document.querySelector(path)
         : path;
-    console.log(id, props, path);
     if (
       pathElement &&
       pathElement.parentElement &&

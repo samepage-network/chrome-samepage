@@ -42,7 +42,8 @@ const SUPPORTED_APPS = [
   {
     test: /notion\.so/,
     // TODO: will probably want to pass in token here in the future
-    transform: async (_: string): Promise<AppData> => {
+    transform: async (href: string): Promise<AppData> => {
+      if (!/[a-f0-9]{32}$/.test(href)) return false;
       const response = await notion.users.me({}).catch(() => false as const);
       return (
         response &&
@@ -89,7 +90,7 @@ chrome.runtime.onMessage.addListener((msg, _, sendResponse) => {
           globalAppData = appData;
           sendResponse(appData);
           chrome.action.setBadgeText({
-            text: appData ? "ON" : "OFF",
+            text: appData ? "ON" : "ERROR",
           });
         });
       } else {

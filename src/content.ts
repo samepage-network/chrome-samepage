@@ -61,7 +61,8 @@ const setupClient = (notebook: SupportedNotebook) => {
       !e.shiftKey &&
       !e.ctrlKey &&
       !e.altKey &&
-      e.key.length === 1
+      e.key.length === 1 &&
+      !["p", "r", "t", "v", "w"].includes(e.key.toLowerCase())
     ) {
       const command = Object.entries(commands).reduce((p, c) => {
         const indexify = (s: string) => {
