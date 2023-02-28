@@ -31,12 +31,12 @@ const test = base.extend<{
 const expect = test.expect;
 
 test('"End to end" chrome test', async ({ page }) => {
-  const password = process.env.NOTION_PASSWORD;
+  const password = process.env.NOTION_TEST_PASSWORD;
   if (!password)
-    throw new Error("Missing NOTION_PASSWORD environment variable");
-  const samePagePassword = process.env.SAMEPAGE_PASSWORD;
+    throw new Error("Missing NOTION_TEST_PASSWORD environment variable");
+  const samePagePassword = process.env.SAMEPAGE_TEST_PASSWORD;
   if (!samePagePassword)
-    throw new Error("Missing SAMEPAGE_PASSWORD environment variable");
+    throw new Error("Missing SAMEPAGE_TEST_PASSWORD environment variable");
 
   await test.step("Login to Notion", async () => {
     await page.goto("https://notion.so");
