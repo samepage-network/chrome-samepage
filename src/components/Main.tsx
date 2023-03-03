@@ -1,10 +1,13 @@
 import React from "react";
 import defaultSettings from "samepage/utils/defaultSettings";
 import { AppData } from "../utils/types";
+import { InputGroup } from "@blueprintjs/core";
 
-const globalSettings: Record<string, string> = {};
-
-const Home = () => {
+const Home = ({
+  globalSettings,
+}: {
+  globalSettings: Record<string, string>;
+}) => {
   return (
     <div>
       {Object.keys(globalSettings).length > 1
@@ -14,22 +17,27 @@ const Home = () => {
   );
 };
 
-const Settings = () => {
+const Settings = ({
+  globalSettings,
+}: {
+  globalSettings: Record<string, string>;
+}) => {
   return (
     <div className="py-2 flex flex-col gap-2">
-      <input
+      <InputGroup
         placeholder={defaultSettings[0].name}
         disabled
         defaultValue={
           globalSettings[defaultSettings[0].id] || defaultSettings[0].default
         }
       />
-      <input
+      <InputGroup
         placeholder={defaultSettings[1].name}
         disabled
         defaultValue={
           globalSettings[defaultSettings[1].id] || defaultSettings[1].default
         }
+        type={"password"}
       />
     </div>
   );
@@ -45,21 +53,32 @@ const Main = () => {
   const [currentTab, setCurrentTab] = React.useState(0);
   const [loading, setLoading] = React.useState(true);
   const { Panel } = TABS[currentTab];
+
+  const globalSettingsRef = React.useRef<Record<string, string>>({});
+  const [globalSettings, setGlobalSettings] = React.useState(
+    globalSettingsRef.current
+  );
+  const refreshGlobalSettings = React.useCallback(
+    () => setGlobalSettings({ ...globalSettingsRef.current }),
+    [globalSettingsRef, setGlobalSettings]
+  );
   React.useEffect(() => {
     chrome.runtime
-      .sendMessage({ type: "GET", data: {} })
+      .sendMessage({ type: "SETUP", data: {} })
       .then((appData: AppData) => {
         if (appData) {
           const key = `${appData.app}:${appData.workspace}`;
           return chrome.storage.sync.get(key).then((data) => {
             Object.entries(data[key] || {}).forEach(([k, v]) => {
-              globalSettings[k] = v as string;
+              globalSettingsRef.current[k] = v as string;
             });
+            refreshGlobalSettings();
           });
         } else {
           Object.keys(globalSettings).forEach((k) => {
-            delete globalSettings[k];
+            delete globalSettingsRef.current[k];
           });
+          refreshGlobalSettings();
         }
       })
       .finally(() => {
@@ -67,13 +86,21 @@ const Main = () => {
       });
   }, [setLoading]);
   return (
-    <div className="flex max-w-3xl w-full">
+    <div className="flex" style={{ width: 480, height: 360 }}>
       <div className="w-32" style={{ width: 128 }}>
         {TABS.map((t, i) => (
           <div
-            className={`capitalize cursor py-4 px-6 rounded-lg hover:bg-sky-400${
+            className={`capitalize cursor-pointer py-4 px-6 rounded-lg hover:bg-sky-400${
               t.id === TABS[currentTab].id ? " bg-sky-200" : ""
             }`}
+            style={{
+              textTransform: "capitalize",
+              cursor: "pointer",
+              padding: "16px 24px",
+              borderRadius: "12px",
+              background:
+                t.id === TABS[currentTab].id ? "rgb(186, 230, 253)" : "inherit",
+            }}
             key={t.id}
             onClick={() => {
               setCurrentTab(i);
@@ -83,8 +110,12 @@ const Main = () => {
           </div>
         ))}
       </div>
-      <div className="flex-grow">
-        {loading ? <span>Loading...</span> : <Panel />}
+      <div className="flex-grow p-8" style={{ padding: 32 }}>
+        {loading ? (
+          <span>Loading...</span>
+        ) : (
+          <Panel globalSettings={globalSettings} />
+        )}
       </div>
     </div>
   );

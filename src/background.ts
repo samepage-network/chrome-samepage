@@ -58,8 +58,7 @@ const SUPPORTED_APPS = [
 ];
 
 const zMessage = z.discriminatedUnion("type", [
-  z.object({ type: z.literal("SETUP"), data: z.object({ href: z.string() }) }),
-  z.object({ type: z.literal("GET"), data: z.object({}) }),
+  z.object({ type: z.literal("SETUP"), data: z.object({}) }),
   z.object({
     type: z.literal("CREATE_PAGE"),
     data: z.object({ notebookPageId: z.string(), path: z.string() }),
@@ -84,26 +83,33 @@ chrome.runtime.onMessage.addListener((msg, _, sendResponse) => {
   const { type, data } = zMessage.parse(msg);
   switch (type) {
     case "SETUP": {
-      const appInfo = SUPPORTED_APPS.find((a) => a.test.test(data.href));
-      if (appInfo) {
-        appInfo.transform(data.href).then((appData) => {
-          globalAppData = appData;
-          sendResponse(appData);
-          chrome.action.setBadgeText({
-            text: appData ? "ON" : "ERROR",
-          });
-        });
+      if (globalAppData) {
+        sendResponse(globalAppData);
       } else {
-        globalAppData = false;
-        sendResponse(false);
-        chrome.action.setBadgeText({
-          text: "OFF",
-        });
+        chrome.tabs
+          .query({ lastFocusedWindow: true, active: true })
+          .then(async (tabs) => {
+            const [{ url }] = tabs;
+            if (!url) {
+              sendResponse(false);
+              return;
+            }
+            const appInfo = SUPPORTED_APPS.find((a) => a.test.test(url));
+            if (appInfo) {
+              globalAppData = await appInfo.transform(url);
+              sendResponse(globalAppData);
+              chrome.action.setBadgeText({
+                text: globalAppData ? "ON" : "ERROR",
+              });
+            } else {
+              globalAppData = false;
+              sendResponse(false);
+              chrome.action.setBadgeText({
+                text: "OFF",
+              });
+            }
+          });
       }
-      break;
-    }
-    case "GET": {
-      sendResponse(globalAppData);
       break;
     }
     case "CREATE_PAGE": {

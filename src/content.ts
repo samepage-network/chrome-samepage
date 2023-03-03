@@ -4,6 +4,8 @@ import defaultSettings from "samepage/utils/defaultSettings";
 import renderOverlay from "./utils/renderOverlay";
 import { SupportedNotebook, zSetup } from "./utils/types";
 import { v4 } from "uuid";
+import CommandPalette from "./components/CommandPalette";
+import renderToast from "./components/Toast";
 
 const globalSettings: Record<string, string> = {};
 
@@ -54,30 +56,38 @@ const setupClient = (notebook: SupportedNotebook) => {
     removeCommand: ({ label }) => {
       delete commands[label];
     },
+    onAppLog: (evt) =>
+      evt.intent !== "debug" &&
+      renderToast({
+        id: evt.id,
+        content: evt.content,
+        intent:
+          evt.intent === "error"
+            ? "danger"
+            : evt.intent === "info"
+            ? "primary"
+            : evt.intent,
+      }),
   });
   document.addEventListener("keydown", (e) => {
     if (
-      e.metaKey &&
+      !e.altKey &&
       !e.shiftKey &&
       !e.ctrlKey &&
-      !e.altKey &&
-      e.key.length === 1 &&
-      !["p", "r", "t", "v", "w"].includes(e.key.toLowerCase())
+      e.metaKey &&
+      /^(Key)?[pP]$/.test(e.key)
     ) {
-      const command = Object.entries(commands).reduce((p, c) => {
-        const indexify = (s: string) => {
-          const i = s.toLowerCase().indexOf(e.key.toLowerCase());
-          return i < 0 ? s.length : i;
-        };
-        const prevIndex = indexify(p[0]);
-        const curIndex = indexify(c[0]);
-        return curIndex < prevIndex ? c : p;
+      renderOverlay({
+        Overlay: CommandPalette,
+        props: {
+          commands: Object.entries(commands).map(([label, callback]) => ({
+            label,
+            callback,
+          })),
+        },
       });
-      if (command) {
-        command[1]();
-        console.log(`Fired ${command[0]} from`, commands);
-        e.preventDefault();
-      }
+      e.preventDefault();
+      e.stopPropagation();
     }
   });
   return unload;
@@ -149,6 +159,7 @@ const setupSharePageWithNotebook = () => {
         data: { notebookPageId, state },
       }),
   });
+
   commands["Refresh"] = () => {
     refreshContent({ notebookPageId: getCurrentNotebookPageId() });
   };
@@ -174,7 +185,7 @@ const setupProtocols = () => {
 const setup = async () => {
   const response = await chrome.runtime.sendMessage({
     type: "SETUP",
-    data: { href: window.location.href },
+    data: {},
   });
   const data = zSetup.parse(response);
   if (data) {

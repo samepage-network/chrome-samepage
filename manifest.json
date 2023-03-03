@@ -7,7 +7,7 @@
     "default_popup": "index.html",
     "default_icon": "logo.png"
   },
-  "permissions": ["storage"],
+  "permissions": ["storage", "tabs", "background"],
   "background": {
     "service_worker": "background.js"
   },
