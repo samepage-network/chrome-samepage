@@ -1,58 +1,15 @@
 import React from "react";
 import defaultSettings from "samepage/utils/defaultSettings";
 import { AppData } from "../utils/types";
-import { InputGroup } from "@blueprintjs/core";
+import { Button, InputGroup } from "@blueprintjs/core";
 
-const Home = ({
-  globalSettings,
-}: {
-  globalSettings: Record<string, string>;
-}) => {
-  return (
-    <div>
-      {Object.keys(globalSettings).length > 1
-        ? "Welcome to SamePage"
-        : "This app is not currently integrated with SamePage"}
-    </div>
-  );
-};
-
-const Settings = ({
-  globalSettings,
-}: {
-  globalSettings: Record<string, string>;
-}) => {
-  return (
-    <div className="py-2 flex flex-col gap-2">
-      <InputGroup
-        placeholder={defaultSettings[0].name}
-        disabled
-        defaultValue={
-          globalSettings[defaultSettings[0].id] || defaultSettings[0].default
-        }
-      />
-      <InputGroup
-        placeholder={defaultSettings[1].name}
-        disabled
-        defaultValue={
-          globalSettings[defaultSettings[1].id] || defaultSettings[1].default
-        }
-        type={"password"}
-      />
-    </div>
-  );
-};
-
-const TABS = [
-  { id: "home", Panel: Home },
-  { id: "settings", Panel: Settings },
-];
+const TABS = ["home", "settings"];
 
 // TODO - Allow TW to pick up on extension classes
 const Main = () => {
   const [currentTab, setCurrentTab] = React.useState(0);
   const [loading, setLoading] = React.useState(true);
-  const { Panel } = TABS[currentTab];
+  const [error, setError] = React.useState("");
 
   const globalSettingsRef = React.useRef<Record<string, string>>({});
   const [globalSettings, setGlobalSettings] = React.useState(
@@ -62,9 +19,15 @@ const Main = () => {
     () => setGlobalSettings({ ...globalSettingsRef.current }),
     [globalSettingsRef, setGlobalSettings]
   );
+  const resetGlobalSettings = React.useRef(() => {});
   React.useEffect(() => {
-    chrome.runtime
-      .sendMessage({ type: "SETUP", data: {} })
+    chrome.tabs
+      .query({ lastFocusedWindow: true, active: true })
+      .then((tabs) => {
+        return tabs[0]?.id
+          ? chrome.tabs.sendMessage(tabs[0].id, { type: "SETUP" })
+          : Promise.reject(new Error("No active tab found."));
+      })
       .then((appData: AppData) => {
         if (appData) {
           const key = `${appData.app}:${appData.workspace}`;
@@ -73,6 +36,11 @@ const Main = () => {
               globalSettingsRef.current[k] = v as string;
             });
             refreshGlobalSettings();
+            resetGlobalSettings.current = () => {
+              chrome.storage.sync.remove(key);
+              globalSettingsRef.current = {};
+              refreshGlobalSettings();
+            };
           });
         } else {
           Object.keys(globalSettings).forEach((k) => {
@@ -81,6 +49,7 @@ const Main = () => {
           refreshGlobalSettings();
         }
       })
+      .catch((e) => setError(e.message))
       .finally(() => {
         setLoading(false);
       });
@@ -91,7 +60,7 @@ const Main = () => {
         {TABS.map((t, i) => (
           <div
             className={`capitalize cursor-pointer py-4 px-6 rounded-lg hover:bg-sky-400${
-              t.id === TABS[currentTab].id ? " bg-sky-200" : ""
+              t === TABS[currentTab] ? " bg-sky-200" : ""
             }`}
             style={{
               textTransform: "capitalize",
@@ -99,22 +68,86 @@ const Main = () => {
               padding: "16px 24px",
               borderRadius: "12px",
               background:
-                t.id === TABS[currentTab].id ? "rgb(186, 230, 253)" : "inherit",
+                t === TABS[currentTab] ? "rgb(186, 230, 253)" : "inherit",
             }}
-            key={t.id}
+            key={t}
             onClick={() => {
               setCurrentTab(i);
             }}
           >
-            {t.id}
+            {t}
           </div>
         ))}
       </div>
-      <div className="flex-grow p-8" style={{ padding: 32 }}>
+      <div
+        className="flex-grow p-8 h-full"
+        style={{ padding: 32, height: "100%" }}
+      >
         {loading ? (
           <span>Loading...</span>
+        ) : error ? (
+          <span className="text-red-800">{error}</span>
+        ) : TABS[currentTab] === "home" ? (
+          <div>
+            {Object.keys(globalSettings).length > 1
+              ? "Welcome to SamePage"
+              : "This app is not currently integrated with SamePage"}
+          </div>
+        ) : TABS[currentTab] === "settings" ? (
+          <div className="py-2 flex flex-col gap-2">
+            <InputGroup
+              placeholder={defaultSettings[0].name}
+              disabled
+              defaultValue={
+                globalSettings[defaultSettings[0].id] ||
+                defaultSettings[0].default
+              }
+            />
+            <InputGroup
+              placeholder={defaultSettings[1].name}
+              disabled
+              defaultValue={
+                globalSettings[defaultSettings[1].id] ||
+                defaultSettings[1].default
+              }
+              type={"password"}
+            />
+            <div
+              className="flex-grow flex justicy-end flex-col"
+              style={{ justifyContent: "end" }}
+            >
+              {globalSettings[defaultSettings[0].id] ||
+              defaultSettings[0].default ? (
+                <Button
+                  text={"Log Out"}
+                  intent={"warning"}
+                  onClick={() => {
+                    resetGlobalSettings.current();
+                    setCurrentTab(0);
+                  }}
+                />
+              ) : (
+                <Button
+                  text={"Connect"}
+                  intent={"primary"}
+                  onClick={() => {
+                    chrome.tabs
+                      .query({ lastFocusedWindow: true, active: true })
+                      .then((tabs) =>
+                        tabs[0]?.id
+                          ? chrome.tabs.sendMessage(tabs[0].id, {
+                              type: "CONNECT",
+                            })
+                          : Promise.reject(new Error("No active tab found."))
+                      )
+                      .catch((e) => setError(e.message));
+                  }}
+                />
+              )}
+            </div>
+          </div>
         ) : (
-          <Panel globalSettings={globalSettings} />
+          <span>Unknown tab</span>
         )}
       </div>
     </div>

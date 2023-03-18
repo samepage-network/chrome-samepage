@@ -26,7 +26,7 @@ jobs:
       # react-popper causing peer dep probs
         run: npm install -f
       - name: install playwright
-        run: npx playwright install
+        run: npx playwright install chromium
       - name: test
         run: node scripts/test.js
       - name: Upload Integration Test Coverage to Codecov

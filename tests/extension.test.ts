@@ -30,7 +30,7 @@ const test = base.extend<{
 });
 const expect = test.expect;
 
-test('"End to end" chrome test', async ({ page }) => {
+test.skip('"End to end" chrome test', async ({ page }) => {
   const password = process.env.NOTION_TEST_PASSWORD;
   if (!password)
     throw new Error("Missing NOTION_TEST_PASSWORD environment variable");

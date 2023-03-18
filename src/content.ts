@@ -2,12 +2,20 @@ import setupSamePageClient from "samepage/protocols/setupSamePageClient";
 import loadSharePageWithNotebook from "samepage/protocols/sharePageWithNotebook";
 import defaultSettings from "samepage/utils/defaultSettings";
 import renderOverlay from "./utils/renderOverlay";
-import { SupportedNotebook, zSetup } from "./utils/types";
+import { AppData, SupportedNotebook, zSetup } from "./utils/types";
 import { v4 } from "uuid";
 import CommandPalette from "./components/CommandPalette";
 import renderToast from "./components/Toast";
+import { apiPost } from "samepage/internal/apiClient";
 
 const globalSettings: Record<string, string> = {};
+const SUPPORTED_APPS = [
+  {
+    test: /notion\.so/,
+    // TODO: will probably want to pass in token here in the future
+    id: "notion",
+  },
+];
 
 const setupUserSettings = async (data: SupportedNotebook) => {
   const settings = defaultSettings.map((d) => ({
@@ -19,7 +27,6 @@ const setupUserSettings = async (data: SupportedNotebook) => {
   }));
   const key = `${data.app}:${data.workspace}`;
   await chrome.storage.sync.get(key).then((d) => {
-    console.log("settings", settings, d);
     settings.forEach((s) => {
       globalSettings[s.id] = d[key]?.[s.id] || s.value;
     });
@@ -93,29 +100,28 @@ const setupClient = (notebook: SupportedNotebook) => {
   return unload;
 };
 
-const setupSharePageWithNotebook = () => {
+const setupSharePageWithNotebook = (data: SupportedNotebook) => {
+  const id = data.app.toLowerCase();
   const getCurrentNotebookPageId = () =>
     document.location.pathname.replace(/^\//, "");
   const { unload, refreshContent } = loadSharePageWithNotebook({
     getCurrentNotebookPageId: async () => getCurrentNotebookPageId(),
     createPage: (notebookPageId: string) =>
-      chrome.runtime.sendMessage({
+      apiPost(`extensions/${id}/backend`, {
         type: "CREATE_PAGE",
         data: { notebookPageId, path: document.location.pathname },
       }),
     calculateState: (notebookPageId: string) =>
-      chrome.runtime
-        .sendMessage({
-          type: "CALCULATE_STATE",
-          data: { notebookPageId },
-        })
-        .then((r) => {
-          if (r.success) {
-            return r.data;
-          } else {
-            return Promise.reject(r.error);
-          }
-        }),
+      apiPost(`extensions/${id}/backend`, {
+        type: "CALCULATE_STATE",
+        data: { notebookPageId },
+      }).then((r) => {
+        if (r.success) {
+          return r.data;
+        } else {
+          return Promise.reject(r.data);
+        }
+      }),
     overlayProps: {
       viewSharedPageProps: {},
       sharedPageStatusProps: {
@@ -149,12 +155,12 @@ const setupSharePageWithNotebook = () => {
     openPage: async (notebookPageId) =>
       window.location.assign(`/${notebookPageId}`),
     deletePage: (notebookPageId) =>
-      chrome.runtime.sendMessage({
+      apiPost(`extensions/${id}/backend`, {
         type: "DELETE_PAGE",
         data: { notebookPageId },
       }),
     applyState: async (notebookPageId, state) =>
-      chrome.runtime.sendMessage({
+      apiPost(`extensions/${id}/backend`, {
         type: "APPLY_STATE",
         data: { notebookPageId, state },
       }),
@@ -172,8 +178,8 @@ const setupToolSpecificProtocol = () => {
   return () => {};
 };
 
-const setupProtocols = () => {
-  const unloadSharePageWithNotebook = setupSharePageWithNotebook();
+const setupProtocols = (data: SupportedNotebook) => {
+  const unloadSharePageWithNotebook = setupSharePageWithNotebook(data);
   const unloadToolSpecificProtocol = setupToolSpecificProtocol();
   // add more here
   return () => {
@@ -183,19 +189,37 @@ const setupProtocols = () => {
 };
 
 const setup = async () => {
-  const response = await chrome.runtime.sendMessage({
-    type: "SETUP",
-    data: {},
+  let appData: AppData = false;
+  console.log("addLis", new Date().valueOf());
+  chrome.runtime.onMessage.addListener((message, _, sendResponse) => {
+    if (message.type === "SETUP") {
+      sendResponse(appData);
+    } else if (message.type === "CONNECT") {
+      commands["Onboard to SamePage"]?.();
+      sendResponse(false);
+    } else {
+      sendResponse(false);
+    }
   });
-  const data = zSetup.parse(response);
-  if (data) {
-    await setupUserSettings(data);
-    const unloadClient = setupClient(data);
-    const unloadProtocols = setupProtocols();
-    return () => {
-      unloadProtocols();
-      unloadClient();
-    };
+  const appInfo = SUPPORTED_APPS.find((a) => a.test.test(window.location.href));
+  if (appInfo) {
+    appData = await apiPost<{
+      data: AppData;
+    }>(`extensions/${appInfo.id}/backend`, { type: "SETUP" }).then(
+      (r) => r.data
+    );
+    if (appData) {
+      await setupUserSettings(appData);
+      const unloadClient = setupClient(appData);
+      const unloadProtocols = setupProtocols(appData);
+      // chrome.action.setBadgeText({
+      //   text: "ON",
+      // });
+      return () => {
+        unloadProtocols();
+        unloadClient();
+      };
+    }
   }
 };
 
