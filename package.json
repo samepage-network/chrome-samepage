@@ -27,7 +27,7 @@
   },
   "homepage": "https://github.com/samepage-network/chrome-samepage#readme",
   "dependencies": {
-    "samepage": "^0.48.3"
+    "samepage": "^0.49.0"
   },
   "devDependencies": {
     "@types/chrome": "^0.0.213",

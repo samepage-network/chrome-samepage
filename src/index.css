@@ -13,3 +13,19 @@
 div[id*="samepage-shared"] {
   padding: 0 96px;
 }
+
+.samepage-command-portal {
+  z-index: 150;
+}
+
+.samepage-command-menu {
+  z-index: 200;
+}
+
+.samepage-command-options {
+  width: 470px;
+}
+
+#notion-app a.bp4-button {
+  cursor: pointer;
+}

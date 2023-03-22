@@ -9,6 +9,49 @@ import renderToast from "./components/Toast";
 import { apiPost } from "samepage/internal/apiClient";
 import { getSetting } from "samepage/internal/registry";
 
+// TODO - duplicated from index.css - need to figure out how to import directly in extension manifest.
+const indexCss = `.notion-topbar > div {
+  overflow: unset !important;
+}
+
+.samepage-onboarding-portal .bp4-overlay {
+  z-index: 1000;
+}
+
+.samepage-shared-page-status {
+  margin-bottom: 0;
+}
+
+div[id*="samepage-shared"] {
+  padding: 0 96px;
+}
+
+.samepage-command-portal {
+  z-index: 150;
+}
+
+.samepage-command-menu {
+  z-index: 200;
+}
+
+.samepage-command-options {
+  width: 470px;
+}
+
+#notion-app a.bp4-button {
+  cursor: pointer;
+}`;
+
+const addStyle = (content: string, id = v4().slice(0, 8)): HTMLStyleElement => {
+  const existing = document.getElementById(id) as HTMLStyleElement;
+  if (existing) return existing;
+  const css = document.createElement("style");
+  css.textContent = content;
+  css.id = id;
+  document.getElementsByTagName("head")[0].appendChild(css);
+  return css;
+};
+
 const globalSettings: Record<string, string> = {};
 const SUPPORTED_APPS = [
   {
@@ -161,7 +204,6 @@ const setupSharePageWithNotebook = (data: SupportedNotebook) => {
         data: { notebookPageId },
       }),
     applyState: async (notebookPageId, state) => {
-      console.log("BASEBALL");
       return apiPost(`extensions/${id}/backend`, {
         type: "APPLY_STATE",
         data: { notebookPageId, state },
@@ -173,18 +215,30 @@ const setupSharePageWithNotebook = (data: SupportedNotebook) => {
         }
       });
     },
+    onConnect: () => {
+      let refreshRef = 0;
+      const listener = () => {
+        window.clearTimeout(refreshRef);
+        refreshRef = window.setTimeout(
+          () => refreshContent({ notebookPageId: getCurrentNotebookPageId() }),
+          1000
+        );
+      };
+      document.body.addEventListener("keydown", listener);
+      return () => {
+        document.body.removeEventListener("keydown", listener);
+      };
+    },
   });
-
-  commands["Refresh"] = () => {
-    refreshContent({ notebookPageId: getCurrentNotebookPageId() });
-  };
 
   return unload;
 };
 
 const setupToolSpecificProtocol = () => {
-  // anything specific to this tool
-  return () => {};
+  const el = addStyle(indexCss);
+  return () => {
+    el.remove();
+  };
 };
 
 const setupProtocols = (data: SupportedNotebook) => {
@@ -199,7 +253,6 @@ const setupProtocols = (data: SupportedNotebook) => {
 
 const setup = async () => {
   let appData: AppData = false;
-  console.log("addLis", new Date().valueOf());
   chrome.runtime.onMessage.addListener((message, _, sendResponse) => {
     if (message.type === "SETUP") {
       sendResponse(appData);

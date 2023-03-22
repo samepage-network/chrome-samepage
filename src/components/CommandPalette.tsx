@@ -22,17 +22,6 @@ const CommandPalette = ({
         onKeyDown={(e) => e.stopPropagation()}
         onPaste={(e) => e.stopPropagation()}
       >
-        <style>{`.samepage-command-portal {
-    z-index: 150;
-}
-
-.samepage-command-menu {
-    z-index: 200;
-}
-
-.samepage-command-options {
-    width: 470px;
-}`}</style>
         <Suggest2
           className="samepage-command-palette"
           items={commands}
