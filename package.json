@@ -1,7 +1,7 @@
 {
   "name": "chrome-samepage",
-  "version": "1.1.4",
-  "description": "Official Chrome client into the intra tool-for-thought protocol.",
+  "version": "1.1.5",
+  "description": "Official Chrome client into the inter tool protocol-for-thought.",
   "main": "./dist/index.js",
   "scripts": {
     "postinstall": "patch-package --patch-dir node_modules/samepage/patches",
