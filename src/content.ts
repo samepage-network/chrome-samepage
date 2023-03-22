@@ -2,11 +2,12 @@ import setupSamePageClient from "samepage/protocols/setupSamePageClient";
 import loadSharePageWithNotebook from "samepage/protocols/sharePageWithNotebook";
 import defaultSettings from "samepage/utils/defaultSettings";
 import renderOverlay from "./utils/renderOverlay";
-import { AppData, SupportedNotebook, zSetup } from "./utils/types";
+import { AppData, SupportedNotebook } from "./utils/types";
 import { v4 } from "uuid";
 import CommandPalette from "./components/CommandPalette";
 import renderToast from "./components/Toast";
 import { apiPost } from "samepage/internal/apiClient";
+import { getSetting } from "samepage/internal/registry";
 
 const globalSettings: Record<string, string> = {};
 const SUPPORTED_APPS = [
@@ -114,7 +115,7 @@ const setupSharePageWithNotebook = (data: SupportedNotebook) => {
     calculateState: (notebookPageId: string) =>
       apiPost(`extensions/${id}/backend`, {
         type: "CALCULATE_STATE",
-        data: { notebookPageId },
+        data: { notebookPageId, notebookUuid: getSetting("uuid") },
       }).then((r) => {
         if (r.success) {
           return r.data;
@@ -159,11 +160,19 @@ const setupSharePageWithNotebook = (data: SupportedNotebook) => {
         type: "DELETE_PAGE",
         data: { notebookPageId },
       }),
-    applyState: async (notebookPageId, state) =>
-      apiPost(`extensions/${id}/backend`, {
+    applyState: async (notebookPageId, state) => {
+      console.log("BASEBALL");
+      return apiPost(`extensions/${id}/backend`, {
         type: "APPLY_STATE",
         data: { notebookPageId, state },
-      }),
+      }).then((r) => {
+        if (r.success) {
+          return r.data;
+        } else {
+          return Promise.reject(new Error(r.data));
+        }
+      });
+    },
   });
 
   commands["Refresh"] = () => {

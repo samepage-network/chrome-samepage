@@ -1,7 +1,7 @@
 import React from "react";
 import {
   Intent,
-  IToastProps,
+  ToastProps as BlueprintToastProps,
   Toaster,
   ToasterPosition,
 } from "@blueprintjs/core";
@@ -10,8 +10,8 @@ type ToastBaseProps = {
   content?: string;
   timeout?: number;
   intent?: Intent;
-  onDismiss?: IToastProps["onDismiss"];
-  action?: IToastProps["action"];
+  onDismiss?: BlueprintToastProps["onDismiss"];
+  action?: BlueprintToastProps["action"];
 };
 
 type ToastProps = {

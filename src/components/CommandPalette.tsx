@@ -36,7 +36,7 @@ const CommandPalette = ({
         <Suggest2
           className="samepage-command-palette"
           items={commands}
-          itemPredicate={(s, c) => new RegExp(s).test(c.label)}
+          itemPredicate={(s, c) => new RegExp(s, "i").test(c.label)}
           query={query}
           onQueryChange={(q) => setQuery(q)}
           inputProps={{
@@ -60,7 +60,7 @@ const CommandPalette = ({
           itemsEqual={(a, b) => a.label === b.label}
           popoverProps={{
             portalClassName: "samepage-command-menu",
-            className:"samepage-command-options",
+            className: "samepage-command-options",
           }}
         />
       </div>

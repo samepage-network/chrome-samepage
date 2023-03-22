@@ -12,7 +12,7 @@ const renderOverlay: RenderOverlay = ({
   let onClose: () => void;
   if (typeof document === "undefined") return undefined;
   const parent = document.createElement("div");
-  parent.id = id.replace(/^\d*/, "");
+  parent.id = id.replace(/^[\d-]*/, "");
   const render = (i = 0) => {
     const pathElement =
       typeof path === "undefined"
