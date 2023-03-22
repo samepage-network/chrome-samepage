@@ -51,6 +51,7 @@ const CommandPalette = ({
             portalClassName: "samepage-command-menu",
             className: "samepage-command-options",
           }}
+          openOnKeyDown
         />
       </div>
     </Dialog>

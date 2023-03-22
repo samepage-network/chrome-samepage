@@ -34,7 +34,7 @@ div[id*="samepage-shared"] {
   z-index: 200;
 }
 
-.samepage-command-options {
+.samepage-command-menu .bp4-overlay-content {
   width: 470px;
 }
 
@@ -131,10 +131,12 @@ const setupClient = (notebook: SupportedNotebook) => {
       renderOverlay({
         Overlay: CommandPalette,
         props: {
-          commands: Object.entries(commands).map(([label, callback]) => ({
-            label,
-            callback,
-          })),
+          commands: Object.entries(commands)
+            .map(([label, callback]) => ({
+              label,
+              callback,
+            }))
+            .sort((a, b) => a.label.localeCompare(b.label)),
         },
       });
       e.preventDefault();
@@ -148,6 +150,7 @@ const setupSharePageWithNotebook = (data: SupportedNotebook) => {
   const id = data.app.toLowerCase();
   const getCurrentNotebookPageId = () =>
     document.location.pathname.replace(/^\//, "");
+  const sharedPagePaths: Record<string, string> = {};
   const { unload, refreshContent } = loadSharePageWithNotebook({
     getCurrentNotebookPageId: async () => getCurrentNotebookPageId(),
     createPage: (notebookPageId: string) =>
@@ -193,6 +196,27 @@ const setupSharePageWithNotebook = (data: SupportedNotebook) => {
           const sel = v4();
           container.setAttribute("data-samepage-shared", sel);
           return [`div[data-samepage-shared="${sel}"]`];
+        },
+        observer({ onload, onunload }) {
+          const ref = window.setInterval(() => {
+            const notebookPageId = getCurrentNotebookPageId();
+            if (!notebookPageId) return;
+            const existingNotebookPageIds = new Set(
+              Array.from(
+                document.querySelectorAll(`[data-samepage-shared*="-"]`)
+              ).map((d) =>
+                (d.previousElementSibling?.id || "").replace(
+                  /^samepage-shared-/,
+                  ""
+                )
+              )
+            );
+            if (!existingNotebookPageIds.has(notebookPageId)) {
+              existingNotebookPageIds.forEach(onunload);
+              onload(notebookPageId);
+            }
+          }, 100);
+          return () => window.clearInterval(ref);
         },
       },
     },

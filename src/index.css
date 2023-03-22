@@ -22,7 +22,7 @@ div[id*="samepage-shared"] {
   z-index: 200;
 }
 
-.samepage-command-options {
+.samepage-command-menu .bp4-overlay-content {
   width: 470px;
 }
 

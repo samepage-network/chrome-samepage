@@ -1,7 +1,7 @@
 import React from "react";
 import defaultSettings from "samepage/utils/defaultSettings";
 import { AppData } from "../utils/types";
-import { Button, InputGroup } from "@blueprintjs/core";
+import { Button, InputGroup, Label } from "@blueprintjs/core";
 
 const TABS = ["home", "settings"];
 
@@ -95,23 +95,29 @@ const Main = () => {
           </div>
         ) : TABS[currentTab] === "settings" ? (
           <div className="py-2 flex flex-col gap-2">
-            <InputGroup
-              placeholder={defaultSettings[0].name}
-              disabled
-              defaultValue={
-                globalSettings[defaultSettings[0].id] ||
-                defaultSettings[0].default
-              }
-            />
-            <InputGroup
-              placeholder={defaultSettings[1].name}
-              disabled
-              defaultValue={
-                globalSettings[defaultSettings[1].id] ||
-                defaultSettings[1].default
-              }
-              type={"password"}
-            />
+            <Label>
+              {defaultSettings[0].name}
+              <InputGroup
+                placeholder={defaultSettings[0].name}
+                disabled
+                defaultValue={
+                  globalSettings[defaultSettings[0].id] ||
+                  defaultSettings[0].default
+                }
+              />
+            </Label>
+            <Label>
+              {defaultSettings[1].name}
+              <InputGroup
+                placeholder={defaultSettings[1].name}
+                disabled
+                defaultValue={
+                  globalSettings[defaultSettings[1].id] ||
+                  defaultSettings[1].default
+                }
+                type={"password"}
+              />
+            </Label>
             <div
               className="flex-grow flex justicy-end flex-col"
               style={{ justifyContent: "end" }}
