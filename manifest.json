@@ -5,7 +5,8 @@
   "version": "1.1.5",
   "action": {
     "default_popup": "index.html",
-    "default_icon": "logo.png"
+    "default_icon": "logo.png",
+    "default_title": "SamePage"
   },
   "permissions": ["storage", "tabs", "background"],
   "background": {
@@ -13,7 +14,7 @@
   },
   "content_scripts": [
     {
-      "matches": ["https://*.notion.so/*"],
+      "matches": ["https://*/*", "http://*/*"],
       "js": ["content.js"],
       "css": ["index.css", "samepage.css"]
     }
