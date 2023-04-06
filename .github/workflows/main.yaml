@@ -24,4 +24,4 @@ jobs:
         # react-popper causing peer dep probs
         run: npm install -f
       - name: build
-        run: samepage build
+        run: npx samepage build
