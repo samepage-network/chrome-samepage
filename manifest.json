@@ -8,7 +8,7 @@
     "default_icon": "logo.png",
     "default_title": "SamePage"
   },
-  "permissions": ["storage", "tabs", "background"],
+  "permissions": ["storage", "tabs", "background", "cookies"],
   "background": {
     "service_worker": "background.js"
   },
