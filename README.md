@@ -1,3 +1,7 @@
+# DEPRECATED
+
+The chrome extension has been moved to the monorepo: https://github.com/samepage-network/samepage.network/tree/main/chromium
+
 # SamePage
 
 [![Built by SamePage](https://img.shields.io/badge/Ξ-Built_by_SamePage-blue.svg)](https://github.com/samepage-network/samepage.network) [![Install](https://img.shields.io/github/v/release/samepage-network/chrome-samepage)](https://samepage.network/install?id=chrome) [![Twitter follow](https://img.shields.io/badge/follow-%40samepagenetwork-blue.svg?style=flat&logo=twitter)](https://twitter.com/samepagenetwork) [![Discord](https://img.shields.io/discord/1042590270849568788.svg)](https://discord.gg/UpKAfUvUPd) [![Test coverage](https://codecov.io/gh/samepage-network/chrome-samepage/branch/main/graph/badge.svg)](https://codecov.io/gh/samepage-network/chrome-samepage)
